@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Comprobación de seguridad</title>
+  <!--
+    Página alojada para el CAPTCHA de Ulvo (Cloudflare Turnstile). La app la abre con
+    ?sitekey=<clave de sitio>&action=signup|otp&redirect=ulvo://captcha y, resuelto el reto,
+    vuelve a la app con el token en ?token=…. Publicarla en el dominio registrado en Turnstile
+    (p. ej. junto a legal/ en GitHub Pages) y poner su URL en EXPO_PUBLIC_TURNSTILE_PAGE_URL.
+    Sin JavaScript de terceros salvo el de Turnstile; no guarda nada.
+  -->
+  <style>
+    :root { color-scheme: light; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+      font-family: -apple-system, system-ui, "Segoe UI", Roboto, sans-serif; background: #FCFCFC; color: #1C1C1E; padding: 24px; text-align: center; }
+    h1 { font-size: 20px; margin: 0; }
+    p { margin: 0; color: #6B6B70; font-size: 15px; line-height: 1.4; max-width: 320px; }
+    #error { color: #B3261E; display: none; }
+  </style>
+</head>
+<body>
+  <h1>Un momento…</h1>
+  <p>Comprobamos que eres una persona. Volverás a Ulvo automáticamente.</p>
+  <div id="widget"></div>
+  <p id="error">No se ha podido completar la comprobación. Cierra esta página e inténtalo de nuevo.</p>
+  <script>
+    (function () {
+      var params = new URLSearchParams(location.search);
+      var sitekey = params.get('sitekey') || '';
+      var action = params.get('action') || '';
+      var redirect = params.get('redirect') || '';
+      var error = document.getElementById('error');
+      function fail() { error.style.display = 'block'; }
+      // Solo se vuelve a la app de Ulvo y solo con una clave de sitio con la forma de Turnstile.
+      if (!/^ulvo:\/\/captcha$/.test(redirect) || !/^[0-9A-Za-z_-]{10,80}$/.test(sitekey) || !/^(signup|otp)$/.test(action)) { fail(); return; }
+      window.onTurnstileReady = function () {
+        try {
+          turnstile.render('#widget', {
+            sitekey: sitekey,
+            action: action,
+            theme: 'light',
+            callback: function (token) { location.replace(redirect + '?token=' + encodeURIComponent(token)); },
+            'error-callback': fail,
+            'expired-callback': function () { turnstile.reset('#widget'); }
+          });
+        } catch (e) { fail(); }
+      };
+      var s = document.createElement('script');
+      s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileReady&render=explicit';
+      s.async = true; s.defer = true; s.onerror = fail;
+      document.head.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
